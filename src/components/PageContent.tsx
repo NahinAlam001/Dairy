@@ -1,6 +1,7 @@
+// src/components/PageContent.tsx
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import type { User } from "firebase/auth";
 import {
   ref,
@@ -18,6 +19,7 @@ import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Badge } from "./ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { PasswordPrompt } from "./ui/password-prompt";
 
 interface PageContentProps {
   entry: DiaryEntry | undefined;
@@ -27,8 +29,6 @@ interface PageContentProps {
   onDeleteRequest: () => void;
   user: User | null;
 }
-
-const APP_ID = "default-app-id";
 
 export const PageContent = ({
   entry,
@@ -42,50 +42,69 @@ export const PageContent = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
+  const [isPasswordPromptOpen, setIsPasswordPromptOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+
+  const withPasswordProtection = (action: () => void) => {
+    setPendingAction(() => action);
+    setIsPasswordPromptOpen(true);
+  };
+
+  const handleConfirmPassword = () => {
+    if (pendingAction) {
+      pendingAction();
+    }
+    setPendingAction(null);
+  };
+
   const handleFileUpload = async (file: File) => {
     if (!user || !entry || !file || !file.type.startsWith("image/")) return;
 
-    console.log("Starting image upload...");
+    const action = async () => {
+      console.log("Starting image upload...");
 
-    const x = 50;
-    const y = 50;
+      const x = 50;
+      const y = 50;
 
-    const storageRef = ref(
-      storage,
-      `images/${user.uid}/${entry.id}/${Date.now()}_${file.name}`,
-    );
+      const storageRef = ref(
+        storage,
+        `images/${user.uid}/${entry.id}/${Date.now()}_${file.name}`,
+      );
 
-    try {
-      const snapshot = await uploadBytes(storageRef, file);
-      console.log("Image uploaded successfully!", snapshot);
+      try {
+        const snapshot = await uploadBytes(storageRef, file);
+        console.log("Image uploaded successfully!", snapshot);
 
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      console.log("Got download URL:", downloadURL);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        console.log("Got download URL:", downloadURL);
 
-      const newImage: DiaryImage = {
-        id: crypto.randomUUID(),
-        src: downloadURL,
-        x: x,
-        y: y,
-        width: 200,
-        height: 150,
-      };
+        const newImage: DiaryImage = {
+          id: crypto.randomUUID(),
+          src: downloadURL,
+          x: x,
+          y: y,
+          width: 200,
+          height: 150,
+        };
 
-      const updatedImages = [...(entry.images || []), newImage];
-      const updatedEntry = { ...entry, images: updatedImages };
+        const updatedImages = [...(entry.images || []), newImage];
+        const updatedEntry = { ...entry, images: updatedImages };
 
-      console.log("Updating entry with new image:", updatedEntry);
+        console.log("Updating entry with new image:", updatedEntry);
 
-      onUpdate(updatedEntry);
-      onSave(updatedEntry);
-    } catch (error) {
-      console.error("Error uploading image:", error);
-      toast({
-        variant: "destructive",
-        title: "Upload Failed",
-        description: "There was an error uploading your image.",
-      });
-    }
+        onUpdate(updatedEntry);
+        onSave(updatedEntry);
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        toast({
+          variant: "destructive",
+          title: "Upload Failed",
+          description: "There was an error uploading your image.",
+        });
+      }
+    };
+
+    withPasswordProtection(action);
   };
 
   const handleImageUpdate = (updatedImage: DiaryImage) => {
@@ -98,29 +117,34 @@ export const PageContent = ({
 
   const handleImageDelete = async (imageToDelete: DiaryImage) => {
     if (!entry) return;
-    const imageStorageRef = ref(storage, imageToDelete.src);
-    try {
-      await deleteObject(imageStorageRef);
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Image Deletion Failed",
-        description: "The image may have already been deleted.",
-      });
-    }
-    const updatedImages = (entry.images || []).filter(
-      (img) => img.id !== imageToDelete.id,
-    );
-    const updatedEntry = { ...entry, images: updatedImages };
-    onUpdate(updatedEntry);
-    onSave(updatedEntry);
+
+    const action = async () => {
+      const imageStorageRef = ref(storage, imageToDelete.src);
+      try {
+        await deleteObject(imageStorageRef);
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Image Deletion Failed",
+          description: "The image may have already been deleted.",
+        });
+      }
+      const updatedImages = (entry.images || []).filter(
+        (img) => img.id !== imageToDelete.id,
+      );
+      const updatedEntry = { ...entry, images: updatedImages };
+      onUpdate(updatedEntry);
+      onSave(updatedEntry);
+    };
+
+    withPasswordProtection(action);
   };
 
   const handleTagsUpdate = (newTags: string[]) => {
     if (!entry) return;
     const updatedEntry = { ...entry, tags: newTags };
     onUpdate(updatedEntry);
-    onSave(updatedEntry);
+    withPasswordProtection(() => onSave(updatedEntry));
   };
 
   if (!entry) {
@@ -202,6 +226,11 @@ export const PageContent = ({
           />
         ))}
       </div>
+      <PasswordPrompt
+        isOpen={isPasswordPromptOpen}
+        onClose={() => setIsPasswordPromptOpen(false)}
+        onConfirm={handleConfirmPassword}
+      />
     </div>
   );
 };
