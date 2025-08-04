@@ -34,7 +34,7 @@ export const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-sm md:max-w-md">
         <CardHeader className="text-center">
           <div className="w-24 h-24 mx-auto mb-4 text-primary">
             <AntiqueOwlIcon />

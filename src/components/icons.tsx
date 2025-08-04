@@ -1,6 +1,7 @@
 "use client";
 
-import React from 'react';
+import React from "react";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 export const AntiqueOwlIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 80 80" className={className} fill="currentColor">
@@ -20,20 +21,24 @@ export const AntiqueOwlIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-
 interface ClaspIconProps {
   onClick: () => void;
   isLocked: boolean;
 }
 
-export const ClaspIcon = ({ onClick, isLocked }: ClaspIconProps) => (
-  <div
-    onClick={onClick}
-    className={`absolute top-1/2 -right-4 transform -translate-y-1/2 w-16 h-24 bg-primary/60 cursor-pointer rounded-r-lg flex items-center justify-center shadow-lg transition-transform duration-500 ${isLocked ? "" : "translate-x-16"}`}
-  >
-    <div className="w-10 h-14 bg-primary/80 rounded-md border-2 border-primary flex flex-col items-center justify-around p-1 shadow-inner">
-      <div className="w-3 h-3 rounded-full bg-background/70"></div>
-      <div className="w-3 h-3 rounded-full bg-background/70"></div>
+export const ClaspIcon = ({ onClick, isLocked }: ClaspIconProps) => {
+  const isMobile = useMediaQuery("(max-width: 768px)");
+  return (
+    <div
+      onClick={onClick}
+      className={`absolute top-1/2 -right-4 transform -translate-y-1/2 ${isMobile ? "w-12 h-20" : "w-16 h-24"} bg-primary/60 cursor-pointer rounded-r-lg flex items-center justify-center shadow-lg transition-transform duration-500 ${isLocked ? "" : isMobile ? "translate-x-12" : "translate-x-16"}`}
+    >
+      <div
+        className={` ${isMobile ? "w-8 h-12" : "w-10 h-14"} bg-primary/80 rounded-md border-2 border-primary flex flex-col items-center justify-around p-1 shadow-inner`}
+      >
+        <div className="w-3 h-3 rounded-full bg-background/70"></div>
+        <div className="w-3 h-3 rounded-full bg-background/70"></div>
+      </div>
     </div>
-  </div>
-);
+  );
+};

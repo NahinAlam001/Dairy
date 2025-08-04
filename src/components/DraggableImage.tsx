@@ -21,7 +21,6 @@ export const DraggableImage = ({
   onDelete,
   pageRef,
 }: DraggableImageProps) => {
-  console.log("Rendering DraggableImage with data:", imageData);
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const imageRef = useRef<HTMLDivElement>(null);
@@ -44,6 +43,23 @@ export const DraggableImage = ({
     if (action === "resize") setIsResizing(true);
   };
 
+  const handleTouchStart = (
+    e: React.TouchEvent<HTMLDivElement>,
+    action: "drag" | "resize",
+  ) => {
+    e.stopPropagation();
+    const touch = e.touches[0];
+
+    if (action === "drag") {
+      setIsDragging(true);
+      dragStartPos.current = {
+        x: touch.clientX - imageData.x,
+        y: touch.clientY - imageData.y,
+      };
+    }
+    if (action === "resize") setIsResizing(true);
+  };
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging && !isResizing) return;
@@ -54,18 +70,77 @@ export const DraggableImage = ({
       const parentRect = pageRef.current.getBoundingClientRect();
 
       if (isDragging) {
-        const newX = e.clientX - dragStartPos.current.x;
-        const newY = e.clientY - dragStartPos.current.y;
+        let newX = e.clientX - dragStartPos.current.x;
+        let newY = e.clientY - dragStartPos.current.y;
+
+        newX = Math.max(0, Math.min(newX, parentRect.width - imageData.width));
+        newY = Math.max(
+          0,
+          Math.min(newY, parentRect.height - imageData.height),
+        );
+
         onUpdate({ ...imageData, x: newX, y: newY });
       }
 
       if (isResizing) {
-        const newWidth = e.clientX - parentRect.left - imageData.x;
-        const newHeight = e.clientY - parentRect.top - imageData.y;
+        let newWidth = e.clientX - parentRect.left - imageData.x;
+        let newHeight = e.clientY - parentRect.top - imageData.y;
+
+        newWidth = Math.max(
+          50,
+          Math.min(newWidth, parentRect.width - imageData.x),
+        );
+        newHeight = Math.max(
+          50,
+          Math.min(newHeight, parentRect.height - imageData.y),
+        );
+
         onUpdate({
           ...imageData,
-          width: Math.max(50, newWidth),
-          height: Math.max(50, newHeight),
+          width: newWidth,
+          height: newHeight,
+        });
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isDragging && !isResizing) return;
+      if (!pageRef.current) return;
+
+      e.stopPropagation();
+      const touch = e.touches[0];
+      const parentRect = pageRef.current.getBoundingClientRect();
+
+      if (isDragging) {
+        let newX = touch.clientX - dragStartPos.current.x;
+        let newY = touch.clientY - dragStartPos.current.y;
+
+        newX = Math.max(0, Math.min(newX, parentRect.width - imageData.width));
+        newY = Math.max(
+          0,
+          Math.min(newY, parentRect.height - imageData.height),
+        );
+
+        onUpdate({ ...imageData, x: newX, y: newY });
+      }
+
+      if (isResizing) {
+        let newWidth = touch.clientX - parentRect.left - imageData.x;
+        let newHeight = touch.clientY - parentRect.top - imageData.y;
+
+        newWidth = Math.max(
+          50,
+          Math.min(newWidth, parentRect.width - imageData.x),
+        );
+        newHeight = Math.max(
+          50,
+          Math.min(newHeight, parentRect.height - imageData.y),
+        );
+
+        onUpdate({
+          ...imageData,
+          width: newWidth,
+          height: newHeight,
         });
       }
     };
@@ -77,10 +152,15 @@ export const DraggableImage = ({
     };
 
     window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("touchmove", handleTouchMove);
     window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("touchend", handleMouseUp);
+
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("touchmove", handleTouchMove);
       window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("touchend", handleMouseUp);
     };
   }, [isDragging, isResizing, imageData, onUpdate, onSave, pageRef]);
 
@@ -95,6 +175,7 @@ export const DraggableImage = ({
         height: imageData.height,
       }}
       onMouseDown={(e) => handleMouseDown(e, "drag")}
+      onTouchStart={(e) => handleTouchStart(e, "drag")}
     >
       <Image
         src={imageData.src}
@@ -107,6 +188,7 @@ export const DraggableImage = ({
       <div
         className="absolute -bottom-2 -right-2 w-4 h-4 bg-accent rounded-full cursor-se-resize opacity-0 group-hover:opacity-100 transition-opacity"
         onMouseDown={(e) => handleMouseDown(e, "resize")}
+        onTouchStart={(e) => handleTouchStart(e, "resize")}
       ></div>
       <Button
         variant="destructive"

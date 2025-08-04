@@ -154,15 +154,15 @@ export const PageContent = ({
   return (
     <div
       ref={pageRef}
-      className="page-content w-full h-full p-8 md:p-12 flex flex-col relative"
+      className="page-content w-full h-full p-4 md:p-12 flex flex-col relative"
     >
-      <div className="flex justify-between items-start gap-4 border-b-2 border-primary/20 pb-2 mb-4 z-10">
+      <div className="flex flex-col md:flex-row justify-between items-start gap-4 border-b-2 border-primary/20 pb-2 mb-4 z-10">
         <Input
           type="text"
           value={entry.title}
           onChange={(e) => onUpdate({ ...entry, title: e.target.value })}
           onBlur={() => onSave(entry)}
-          className="font-headline text-4xl bg-transparent w-full focus:outline-none border-0 shadow-none px-0 h-auto"
+          className="font-headline text-2xl md:text-4xl bg-transparent w-full focus:outline-none border-0 shadow-none px-0 h-auto"
           placeholder="A New Chapter"
         />
         <div className="flex space-x-2 flex-shrink-0">
@@ -178,15 +178,16 @@ export const PageContent = ({
         value={entry.content}
         onChange={(e) => onUpdate({ ...entry, content: e.target.value })}
         onBlur={() => onSave(entry)}
-        className="font-body text-lg flex-grow bg-transparent w-full focus:outline-none resize-none border-0 shadow-none px-0 leading-relaxed z-0"
+        className="font-body text-base md:text-lg flex-grow bg-transparent w-full focus:outline-none resize-none border-0 shadow-none px-0 leading-relaxed z-0"
         placeholder="Your story starts here... Add images using the button below."
       />
       <div className="mt-4 z-10 flex flex-col gap-4">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
           <Button
             onClick={() => fileInputRef.current?.click()}
             size="sm"
             variant="outline"
+            className="w-full md:w-auto"
           >
             <ImagePlus className="mr-2 h-4 w-4" />
             Add Image
